@@ -1,0 +1,50 @@
+name: "gipfel – contribution mountain panorama"
+description: "Turn your GitHub contribution year into an animated mountain panorama SVG for your profile README. Pure SVG, no server."
+author: "RexJonas333"
+branding:
+  icon: "triangle"
+  color: "blue"
+inputs:
+  github_user_name:
+    description: "GitHub login to render"
+    required: false
+    default: ${{ github.repository_owner }}
+  outputs:
+    description: "Output directory for the SVG files"
+    required: false
+    default: "dist"
+  themes:
+    description: "Comma-separated theme names (day, night) or paths to theme JSON files"
+    required: false
+    default: "day,night"
+  lang:
+    description: "Label language (en, de)"
+    required: false
+    default: "en"
+  animate:
+    description: "Set to 'false' for a static SVG"
+    required: false
+    default: "true"
+  github_token:
+    description: "Token used to read the contribution calendar via GraphQL"
+    required: false
+    default: ${{ github.token }}
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        GIPFEL_USER: ${{ inputs.github_user_name }}
+        GIPFEL_OUT: ${{ inputs.outputs }}
+        GIPFEL_THEMES: ${{ inputs.themes }}
+        GIPFEL_LANG: ${{ inputs.lang }}
+        GIPFEL_ANIMATE: ${{ inputs.animate }}
+        PYTHONPATH: ${{ github.action_path }}
+      run: |
+        args=(--user "$GIPFEL_USER" --out "$GIPFEL_OUT" --themes "$GIPFEL_THEMES" --lang "$GIPFEL_LANG")
+        if [ "$GIPFEL_ANIMATE" = "false" ]; then args+=(--no-animation); fi
+        python -m gipfel "${args[@]}"

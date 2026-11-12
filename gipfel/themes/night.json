@@ -1,0 +1,22 @@
+{
+  "name": "night",
+  "description": "Starry night with a crescent moon and moonlit snow.",
+  "sky": ["#070b1f", "#151a3d", "#2e2f63"],
+  "far": "#283063",
+  "mid": ["#1d2450", "#141a3b"],
+  "ridge": "#a9b8ff",
+  "ridge_opacity": 0.7,
+  "snow": "#dfe5ff",
+  "snow_opacity": 0.85,
+  "near": "#090c1c",
+  "tree": "#05070f",
+  "text": "#eef1ff",
+  "subtext": "#aab4e6",
+  "stats": "#eef1ff",
+  "accent": "#ffcf6b",
+  "trail": "#ffcf6b",
+  "sky_body": "moon",
+  "sky_body_color": "#f3f0dc",
+  "weather": "stars",
+  "weather_color": "#ffffff"
+}

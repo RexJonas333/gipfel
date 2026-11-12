@@ -1,0 +1,22 @@
+{
+  "name": "day",
+  "description": "Clear alpine day with sun and drifting clouds.",
+  "sky": ["#6fa8e6", "#cfe6fb", "#fbe9d7"],
+  "far": "#9db8d3",
+  "mid": ["#56769a", "#3f5b7c"],
+  "ridge": "#ffffff",
+  "ridge_opacity": 0.55,
+  "snow": "#ffffff",
+  "snow_opacity": 0.95,
+  "near": "#2c4536",
+  "tree": "#1f3428",
+  "text": "#16263a",
+  "subtext": "#2c4560",
+  "stats": "#eef1ff",
+  "accent": "#e8573a",
+  "trail": "#ffd36b",
+  "sky_body": "sun",
+  "sky_body_color": "#ffd56b",
+  "weather": "clouds",
+  "weather_color": "#ffffff"
+}
