@@ -30,7 +30,7 @@ jobs:
   render:
     runs-on: ubuntu-latest
     steps:
-      - uses: RexJonas333/gipfel@v1
+      - uses: RexJonas333/gipfel@v1.0.0
         with:
           github_user_name: ${{ github.repository_owner }}
           outputs: dist
