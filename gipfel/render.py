@@ -52,15 +52,19 @@ def stats(days):
     return total, active, best
 
 
-def _jagged(values, base, hmin, hmax, rnd, sub=6, rough=0.07, sharp=0.85):
+def _jagged(values, base, hmin, hmax, rnd, sub=6, rough=0.07, sharp=0.85, terrain=0.0):
     """Weekly values as anchor points, cosine-interpolated in between plus rock noise.
+    `terrain` (px) adds per-user rolling foothills so quiet years still look alpine.
     Returns (path, anchors); anchors stay exact so the summit flag sits on the peak."""
     if len(values) < 2:
         values = list(values) + [0] * (2 - len(values))
     vmax = max(values) or 1
     n = len(values)
     step = (W + 40) / (n - 1)
-    hs = [hmin + (v / vmax) ** sharp * (hmax - hmin) for v in values]
+    p1, p2 = rnd.uniform(0, 6.3), rnd.uniform(0, 6.3)
+    hills = [terrain * (0.5 + 0.5 * math.sin(i * 0.55 + p1)) * (0.6 + 0.4 * math.sin(i * 0.21 + p2))
+             for i in range(n)]
+    hs = [hmin + hills[i] + (v / vmax) ** sharp * (hmax - hmin - terrain) for i, v in enumerate(values)]
     nodes = [(-20 + i * step, base - h) for i, h in enumerate(hs)]
     pts = [nodes[0]]
     for i in range(n - 1):
@@ -101,17 +105,17 @@ def render(days, user: str, theme: dict | str = "day", lang: str = "en", animate
     year = days[-1][0].year
     user_x = escape(user)
 
-    main_d, main = _jagged(wk, BASE_Y, MIN_H, MAX_H, rnd)
+    main_d, main = _jagged(wk, BASE_Y, MIN_H, MAX_H, rnd, sharp=0.85, terrain=36)
     far_vals = [sum(wk[max(0, i - 3):i + 4]) / len(wk[max(0, i - 3):i + 4]) for i in range(len(wk))]
     far_vals = far_vals[6:] + far_vals[:6]
     far_d, _ = _jagged([v + 0.3 * (max(wk) or 1) * (1 + math.sin(i / 2.3)) for i, v in enumerate(far_vals)],
-                       BASE_Y - 40, 30, 112, rnd, sub=4, rough=0.05, sharp=1.0)
+                       BASE_Y - 40, 30, 104, rnd, sub=4, rough=0.05, sharp=1.0)
     near = [(-20 + i * 52.6, 272 + 9 * math.sin(i * 0.9) + 5 * math.sin(i * 2.1)) for i in range(21)]
     near_d = _smooth(near)
 
     peak_i = max(range(len(wk)), key=lambda i: wk[i])
     px, py = main[peak_i]
-    snowline = BASE_Y - MIN_H - 0.45 * (MAX_H - MIN_H)
+    snowline = py + 0.33 * (BASE_Y - py)    # snow on peaks within the top third of the summit
 
     o = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
          f'aria-label="{user_x}: {total} contributions in the last year, drawn as a mountain panorama">',
@@ -127,6 +131,7 @@ def render(days, user: str, theme: dict | str = "day", lang: str = "en", animate
                 "@media (prefers-reduced-motion:reduce){*{animation:none!important}}")
     o.append(f"<style>{css}</style>")
 
+    bx = 840 if px < 620 else 540           # keep sun/moon clear of the summit label
     sky = t["sky"]
     o.append("<defs>")
     o.append(f'<linearGradient id="g-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{sky[0]}"/>'
@@ -143,8 +148,8 @@ def render(days, user: str, theme: dict | str = "day", lang: str = "en", animate
     o.append(f'<clipPath id="c-snow"><path d="M-20,0 L{W + 20},0 {zig} Z"/></clipPath>')
     o.append(f'<mask id="m-cap"><rect width="{W}" height="{H}" fill="#fff"/>'
              f'<path d="{_closed(main_d)}" fill="#000" transform="translate(0 11)"/></mask>')
-    o.append('<mask id="m-crescent"><rect width="1000" height="300" fill="#fff"/>'
-             '<circle cx="851" cy="61" r="21" fill="#000"/></mask>')
+    o.append(f'<mask id="m-crescent"><rect width="1000" height="300" fill="#fff"/>'
+             f'<circle cx="{bx + 11}" cy="61" r="21" fill="#000"/></mask>')
     if animate:
         o.append(f'<clipPath id="c-reveal"><rect x="-20" y="0" width="{W + 40}" height="{H}">'
                  f'<animate attributeName="width" from="0" to="{W + 40}" dur="4s" fill="freeze" '
@@ -159,11 +164,11 @@ def render(days, user: str, theme: dict | str = "day", lang: str = "en", animate
             o.append(f'<circle class="tw" cx="{x:.0f}" cy="{y:.0f}" r="{r}" fill="{t["weather_color"]}" '
                      f'style="animation-delay:{rnd.uniform(-3.2, 0):.1f}s;animation-duration:{rnd.uniform(2, 5):.1f}s"/>')
     if t.get("sky_body") == "sun":
-        o.append(f'<circle class="glow" cx="840" cy="70" r="70" fill="url(#g-halo)"/>'
-                 f'<circle cx="840" cy="70" r="26" fill="{t["sky_body_color"]}"/>')
+        o.append(f'<circle class="glow" cx="{bx}" cy="70" r="70" fill="url(#g-halo)"/>'
+                 f'<circle cx="{bx}" cy="70" r="26" fill="{t["sky_body_color"]}"/>')
     elif t.get("sky_body") == "moon":
-        o.append(f'<circle class="glow" cx="840" cy="68" r="60" fill="url(#g-halo)" opacity=".35"/>'
-                 f'<circle cx="840" cy="68" r="22" fill="{t["sky_body_color"]}" mask="url(#m-crescent)"/>')
+        o.append(f'<circle class="glow" cx="{bx}" cy="68" r="60" fill="url(#g-halo)" opacity=".35"/>'
+                 f'<circle cx="{bx}" cy="68" r="22" fill="{t["sky_body_color"]}" mask="url(#m-crescent)"/>')
     if t.get("weather") == "clouds":
         c = t["weather_color"]
         for k in range(3):
